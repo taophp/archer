@@ -1,5 +1,11 @@
 <?php
+require_once('vendor/autoload.php');
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 
+$here = (isset($_SERVER['HTTPS']) ? 'https' : 'http').$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
 $dsn = 'sqlite:'.dirname($_SERVER['SCRIPT_FILENAME']).'/db.sqlite';
 
 $db = new PDO($dsn);
@@ -30,23 +36,31 @@ if ($_SERVER['REQUEST_URI'] === '/') {
 	</form>
 	<h2>Raccourcis existants</h2>
 	<table>
-		<tr><th>id</th><th>Shortcut</th><th>Destination</th></tr>
+		<tr><th>id</th><th>Shortcut</th><th>Destination</th><th>QR</th></tr>
 EOH;
 	$sql = 'SELECT rowid,* FROM shorts';
 	$query = $db->query($sql);
 	$results = $query->fetchAll();
 	foreach ($results as $result) {
+		$url = $here.($result['code'] ? $result['code'] : base_convert($result['rowid'],10,36));
+		$qrFile = $result['rowid'].'.png';
+		if (!file_exists($qrFile)) {
+			renderQr($url,$qrFile);
+		}
 		echo '<tr></tr><td>'.$result['rowid'].'</td><td>'
-			.($result['code'] ? $result['code'] : base64_encode($result['rowid']))
-			.'</td><td>'.$result['url'].'</td></tr>';
+			.'<a href="/'.$url.'">'
+			.$url
+			.'</a></td><td>'.$result['url'].'</td>'
+			.'<td><a href="'.$qrFile.'">Afficher</a></td>'
+			.'</tr>';
 	}
 	echo '</ul>';
 	printFooter();
 } else if (count($_GET) > 0) {
 
 }else{
-	$id = substr($_SERVER['REQUEST_URI'],1);
-	$sql = 'SELECT * FROM shorts WHERE id = "'.$id.'";';
+	$id = $db->quote(substr($_SERVER['REQUEST_URI'],1));
+	$sql = 'SELECT * FROM shorts WHERE rowid = "'.base_convert($id,36,10).'" or code = "'.$id.'";';
 	$query = $db->query($sql);
 	$result = $query->fetch();
 	if ($result['url']) {
@@ -69,6 +83,14 @@ function printFooter(){
 	</body>
 </html>
 EOH;
+}
+function renderQr(string $s,string $filename) {
+	$renderer = new ImageRenderer(
+			new RendererStyle(400),
+			new ImagickImageBackEnd()
+	);
+	$writer = new Writer($renderer);
+	$writer->writeFile($s, $filename);
 }
 
 
