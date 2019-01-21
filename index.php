@@ -5,7 +5,7 @@ use BaconQrCode\Renderer\Image\ImagickImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
 
-$here = (isset($_SERVER['HTTPS']) ? 'https' : 'http').$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
+$here = (isset($_SERVER['HTTPS']) ? 'https' : 'http').'://'.$_SERVER['HTTP_HOST'].$_SERVER['REQUEST_URI'];
 $dsn = 'sqlite:'.dirname($_SERVER['SCRIPT_FILENAME']).'/db.sqlite';
 
 $db = new PDO($dsn);
@@ -48,7 +48,7 @@ EOH;
 			renderQr($url,$qrFile);
 		}
 		echo '<tr></tr><td>'.$result['rowid'].'</td><td>'
-			.'<a href="/'.$url.'">'
+			.'<a href="'.$url.'">'
 			.$url
 			.'</a></td><td>'.$result['url'].'</td>'
 			.'<td><a href="'.$qrFile.'">Afficher</a></td>'
